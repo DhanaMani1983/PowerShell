@@ -1,0 +1,8 @@
+Start-Transcript
+Get-ExectionPolicy
+Set-ExecutionPolicy RemoteSigned
+Get-ExecutionPolicy
+Install-Module AzureRM --Install Azure resource manager, new portal
+install-module azure -AllowClobber --Install Azure service manager, classic/old azure portal
+get-coomand -module azurerm -- to get list of command cntl + c to exit
+Login-AzureRmAccount --Login portal.azure.com
