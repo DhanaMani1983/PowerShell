@@ -5,4 +5,119 @@ Get-ExecutionPolicy
 Install-Module AzureRM --Install Azure resource manager, new portal
 install-module azure -AllowClobber --Install Azure service manager, classic/old azure portal
 get-coomand -module azurerm -- to get list of command cntl + c to exit
+
+################################################################################################
+# Azure Portal Login
+#################################################################################################
 Login-AzureRmAccount --Login portal.azure.com
+Save-AzureRmContext -Path "E:\AzureProfile.json". --Save Azure login profile
+Import-AzureRmContext -Path "E:\AzureProfile.json" -- Automated Login
+
+# The azure account here must not be a Live ID.
+$username = "<your Azure account>"
+$SecurePassword = Get-Content "C:\Password.txt" | ConvertTo-SecureString
+$cred = new-object -typename System.Management.Automation.PSCredential `
+     -argumentlist $username, $SecurePassword
+
+Login-AzureRmAccount -Credential $cred
+
+#################################################################################################
+# Set Azure Subscription
+#################################################################################################
+
+Get-AzureRmSubscription -- Get list of subscription from Azure portal
+$SubscriptionId = '7c41519a-7595-4443-805d-deff7fb2a8e8'
+Set-AzureRmContext -SubscriptionId $SubscriptionId
+
+
+#################################################################################################
+# Create a resource group
+#################################################################################################
+
+# New resource group
+New-AzureRmResourceGroup -Name "rg4esadata" -Location "East US 2"
+
+# List resource groups
+Get-AzureRmResourceGroup
+
+#Set resource group
+
+Set-AzureRMResourceGroup -Name "ContosoRG" -Tag @{Department="IT"}
+
+# Delete resource group
+# Remove-AzureRmResourceGroup -Name "rg4esadata" -Force
+
+#################################################################################################
+# Create a storage account
+#################################################################################################
+
+# Create new storage account (lowercase)
+New-AzureRmStorageAccount –StorageAccountName 'sa4esadata' `
+  -ResourceGroupName "rg4esadata" -Location "East US 2" -Type "Standard_GRS"
+
+# Show the account
+Get-AzureRmStorageAccount -ResourceGroupName "rg4esadata"
+
+# Delete storage account
+#Remove-AzureRmStorageAccount -ResourceGroupName "rg4esadata" -Name 'sa4esadata' 
+
+
+
+#################################################################################################
+# Create a storage container
+#################################################################################################
+
+# Grab storage context - work around for RM
+$StorageContext = Get-AzureRmStorageAccount -Name 'sa4esadata' `
+  -ResourceGroupName "rg4esadata" 
+
+# Create new container
+$StorageContext | New-AzureStorageContainer -Name 'sc4esadata' -Permission Off
+
+# Show the container
+$StorageContext | Get-AzureStorageContainer 
+ 
+# Remove the container
+# $StorageContext | Remove-AzureStorageContainer -Name 'sc4esadata' -Force
+
+
+
+#################################################################################################
+# Upload files to a storage container
+#################################################################################################
+
+# Local file path
+$srcpath = "C:\MSSQLTIPS\MINER2016\ARTICLE-2016-11-BLOB-STORAGE\GDATA\"
+
+# Counter
+$cnt = 0
+
+# Loop thru 256 files
+while ($cnt -lt 256)
+{
+    # File name
+    $gzfile = "GaiaSource_000-000-{0:000}.csv.gz" -f $cnt
+
+    # Fully qualified source
+    $srcfull = $srcpath + $gzfile
+
+    # Upload file to azure
+    $StorageContext | Set-AzureStorageBlobContent -Container 'sc4esadata' -File $srcfull
+
+    # Increment count
+    Write-Host $cnt
+    $cnt = $cnt + 1
+}
+
+
+#################################################################################################
+# Dowwnload files from a storage container
+#################################################################################################
+
+# List all blobs in a container.
+$StorageContext | Get-AzureStorageBlob -Container 'sc4esadata' 
+
+
+# Download file from azure
+$StorageContext | Get-AzureStorageBlob -Container 'sc4esadata' `
+    -Blob "GaiaSource_000-000-255.csv.gz" | Get-AzureStorageBlobContent -Destination "c:\temp\"
